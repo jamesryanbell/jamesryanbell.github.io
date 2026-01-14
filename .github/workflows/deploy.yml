@@ -45,4 +45,3 @@ jobs:
           else
             echo "Cloudflare secrets not configured, skipping cache purge"
           fi
-        continue-on-error: true
