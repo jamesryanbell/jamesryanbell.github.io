@@ -31,17 +31,59 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
 
+      - name: Wait for GitHub Pages deployment
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Waiting for GitHub Pages deployment to complete..."
+          max_attempts=30
+          attempt=0
+
+          while [ $attempt -lt $max_attempts ]; do
+            response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/pages/builds/latest")
+
+            # Extract status from JSON without jq
+            status=$(echo "$response" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+            if [ "$status" = "built" ]; then
+              echo "GitHub Pages deployment completed successfully"
+              break
+            fi
+
+            if [ "$status" = "errored" ]; then
+              echo "GitHub Pages deployment failed"
+              exit 1
+            fi
+
+            attempt=$((attempt + 1))
+            echo "Deployment status: $status (attempt $attempt/$max_attempts)"
+            sleep 10
+          done
+
+          if [ $attempt -eq $max_attempts ]; then
+            echo "Timeout waiting for GitHub Pages deployment (continuing anyway)"
+          fi
+
       - name: Purge Cloudflare Cache
         if: github.ref == 'refs/heads/main'
         run: |
           if [ -n "${{ secrets.CLOUDFLARE_ZONE_ID }}" ] && [ -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
-            echo "Purging Cloudflare cache..."
-            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            echo "Purging Cloudflare cache after GitHub Pages deployment..."
+            response=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
               -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
               -H "Content-Type: application/json" \
               --data '{"purge_everything":true}' \
-              --fail-with-body
-            echo "Cache purged successfully"
+              -w "\n%{http_code}")
+
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | sed '$d')
+
+            if [ "$http_code" = "200" ]; then
+              echo "Cache purged successfully"
+            else
+              echo "Cache purge failed with HTTP $http_code: $body"
+              exit 1
+            fi
           else
             echo "Cloudflare secrets not configured, skipping cache purge"
           fi
