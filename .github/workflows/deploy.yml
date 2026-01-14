@@ -30,3 +30,19 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
+
+      - name: Purge Cloudflare Cache
+        if: github.ref == 'refs/heads/main'
+        run: |
+          if [ -n "${{ secrets.CLOUDFLARE_ZONE_ID }}" ] && [ -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "Purging Cloudflare cache..."
+            curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+              -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              --data '{"purge_everything":true}' \
+              --fail-with-body
+            echo "Cache purged successfully"
+          else
+            echo "Cloudflare secrets not configured, skipping cache purge"
+          fi
+        continue-on-error: true
