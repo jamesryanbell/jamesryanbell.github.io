@@ -30,8 +30,14 @@ The GitHub Actions workflow (`.github/workflows/deploy.yml`) will:
 2. Install dependencies
 3. Minify the HTML
 4. Deploy to the `gh-pages` branch
+5. Purge Cloudflare cache (if configured)
 
-**Setup:** Configure GitHub Pages to serve from the `gh-pages` branch in your repository settings (Settings → Pages → Source: Deploy from a branch → Branch: gh-pages).
+**Setup:**
+- Configure GitHub Pages to serve from the `gh-pages` branch in your repository settings (Settings → Pages → Source: Deploy from a branch → Branch: gh-pages).
+- **Cloudflare Cache Purging (Optional):** To enable automatic cache purging after deployment, add these secrets to your repository:
+  - `CLOUDFLARE_ZONE_ID`: Your Cloudflare Zone ID (found in your domain's overview page)
+  - `CLOUDFLARE_API_TOKEN`: A Cloudflare API token with "Zone.Cache Purge" permissions
+  - Go to Settings → Secrets and variables → Actions to add these secrets
 
 ### Option 2: Serve from root branch
 
