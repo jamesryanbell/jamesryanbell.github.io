@@ -1,0 +1,12 @@
+{
+  "name": "jamesryanbell-github-io",
+  "version": "1.0.0",
+  "description": "Personal GitHub Pages site",
+  "scripts": {
+    "build": "node minify.js",
+    "minify": "node minify.js"
+  },
+  "devDependencies": {
+    "html-minifier": "^4.0.0"
+  }
+}
